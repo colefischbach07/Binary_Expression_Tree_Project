@@ -51,22 +51,17 @@ class BinaryExpressionTree:
             return None
         return self.Position(self, node)
 
+   
     def _validate(self, p):
         if not isinstance(p, self.Position):
             raise TypeError("Expected a Position")
 
+        if p._tree is not self or self.is_empty():
+            raise ValueError("Invalid position for this tree")
 
+        return p._node
 
-        if p._tree is not self:
-            raise ValueError("Position belongs to another tree")
         
-
-        node = p._node
-
-        # Check that this node still belongs to this tree.
-        current = node
-        seen = set()
-
         while current.parent is not None:
             if id(current) in seen:
                 raise ValueError("Invalid tree structure")
