@@ -144,3 +144,175 @@ class BinaryExpressionTree:
         left_tree._size = 0
         right_tree._root = None
         right_tree._size = 0
+
+
+
+    def build(self, expression):
+        """Build an expression tree from postfix input."""
+        tokens = expression.split()
+
+        if not tokens:
+            raise ValueError("Empty expression")
+
+        stack = Stack()
+
+        for token in tokens:
+            if token in self.OPERATORS:
+                if stack.size() < 2:
+                    raise ValueError("Too few operands")
+
+                right_tree = stack.pop()
+                left_tree = stack.pop()
+
+                subtree = BinaryExpressionTree()
+                subtree.add_root(token)
+                subtree.attach_subtrees(left_tree, right_tree)
+                stack.push(subtree)
+
+            else:
+                try:
+                    value = float(token)
+                except ValueError:
+                    raise ValueError(
+                        f"Unsupported token: {token}"
+                    ) from None
+
+                import math
+                if not math.isfinite(value):
+                    raise ValueError(
+                        f"Unsupported token: {token}"
+                    )
+
+                subtree = BinaryExpressionTree()
+                subtree.add_root(token)
+                stack.push(subtree)
+
+        if stack.size() != 1:
+            raise ValueError("Extra operands / invalid expression")
+
+        completed = stack.pop()
+
+        # Replace this tree only after successful construction.
+        self._root = completed._root
+        self._size = completed._size
+        completed._root = None
+        completed._size = 0
+
+
+
+    def evaluate(self):
+        """Recursively evaluate the expression tree."""
+        if self.is_empty():
+            raise ValueError("No expression tree")
+
+        def evaluate_at(p):
+            token = p.element()
+
+            if self.is_leaf(p):
+                return float(token)
+
+            left_value = evaluate_at(self.left(p))
+            right_value = evaluate_at(self.right(p))
+
+            if token == "+":
+                return left_value + right_value
+            if token == "-":
+                return left_value - right_value
+            if token == "*":
+                return left_value * right_value
+            if token == "/":
+                if right_value == 0:
+                    raise ZeroDivisionError("Division by zero")
+                return left_value / right_value
+
+            raise ValueError("Unsupported operator")
+
+        return evaluate_at(self.root())
+
+
+
+    def to_infix(self):
+        """Return a fully parenthesized infix expression."""
+        if self.is_empty():
+            raise ValueError("No expression tree")
+
+        def infix_at(p):
+            if self.is_leaf(p):
+                return str(p.element())
+
+            left_text = infix_at(self.left(p))
+            right_text = infix_at(self.right(p))
+
+            return (
+                f"({left_text} {p.element()} {right_text})"
+            )
+
+        return infix_at(self.root())
+
+
+
+    def to_postfix(self):
+        """Return the expression in postfix order."""
+        if self.is_empty():
+            raise ValueError("No expression tree")
+
+        return " ".join(
+            str(p.element()) for p in self.postorder()
+        )
+
+
+
+    def preorder(self):
+        """Visit root, left, right."""
+        if not self.is_empty():
+            yield from self._preorder(self.root())
+
+    def _preorder(self, p):
+        yield p
+
+        left = self.left(p)
+        right = self.right(p)
+
+        if left is not None:
+            yield from self._preorder(left)
+
+        if right is not None:
+            yield from self._preorder(right)
+
+
+
+    def inorder(self):
+        """Visit left, root, right (without parentheses)."""
+        if not self.is_empty():
+            yield from self._inorder(self.root())
+
+    def _inorder(self, p):
+        left = self.left(p)
+        right = self.right(p)
+
+        if left is not None:
+            yield from self._inorder(left)
+
+        yield p
+
+        if right is not None:
+            yield from self._inorder(right)
+
+
+
+    def postorder(self):
+        """Visit left, right, root."""
+        if not self.is_empty():
+            yield from self._postorder(self.root())
+
+    def _postorder(self, p):
+        left = self.left(p)
+        right = self.right(p)
+
+        if left is not None:
+            yield from self._postorder(left)
+
+        if right is not None:
+            yield from self._postorder(right)
+
+        yield p
